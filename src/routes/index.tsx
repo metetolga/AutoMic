@@ -5,6 +5,7 @@ import { Music2, Youtube, AtSign, User, Hash, Loader2 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
 import { supabase, type QueueRow } from '../lib/supabase'
 import { addToQueue } from '../lib/queue.functions'
+import { getYoutubeTitle } from '../lib/youtube.util'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -61,7 +62,7 @@ function ErrorMsg({ message }: { message?: string }) {
   return <p className="mt-1.5 text-xs text-red-500">{message}</p>
 }
 
-function QueueTable({ entries, loading }: { entries: QueueRow[]; loading: boolean }) {
+function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading: boolean; titles: Record<string, string> }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-12 shadow-sm">
@@ -86,7 +87,7 @@ function QueueTable({ entries, loading }: { entries: QueueRow[]; loading: boolea
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className="h-10 w-10 px-4 text-left font-medium text-gray-500">#</th>
             <th className="h-10 px-4 text-left font-medium text-gray-500">Name</th>
-            <th className="h-10 px-4 text-left font-medium text-gray-500">YouTube Link</th>
+            <th className="h-10 px-4 text-left font-medium text-gray-500">Karaoke</th>
             <th className="h-10 px-4 text-right font-medium text-gray-500">Status</th>
           </tr>
         </thead>
@@ -108,7 +109,7 @@ function QueueTable({ entries, loading }: { entries: QueueRow[]; loading: boolea
                     className="inline-flex max-w-full items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
                   >
                     <Youtube className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                    <span className="truncate text-xs">{entry.link}</span>
+                    <span className="truncate text-xs">{titles[entry.link] ?? entry.link}</span>
                   </a>
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -147,6 +148,7 @@ function Home() {
 
   const [queue, setQueue] = useState<QueueRow[]>([])
   const [queueLoading, setQueueLoading] = useState(true)
+  const [titles, setTitles] = useState<Record<string, string>>({})
 
   async function fetchQueue() {
     const { data } = await supabase
@@ -159,6 +161,22 @@ function Home() {
   useEffect(() => {
     fetchQueue().then(() => setQueueLoading(false))
   }, [])
+
+  useEffect(() => {
+    const missing = queue.map(e => e.link).filter(l => !(l in titles))
+    if (missing.length === 0) return
+    Promise.all(
+      missing.map(link =>
+        getYoutubeTitle(link)
+          .then(title => ({ link, title }))
+          .catch(() => null)
+      )
+    ).then(results => {
+      const updates: Record<string, string> = {}
+      for (const r of results) if (r) updates[r.link] = r.title
+      if (Object.keys(updates).length > 0) setTitles(prev => ({ ...prev, ...updates }))
+    })
+  }, [queue])
 
   function validate(): FieldError {
     const e: FieldError = {}
@@ -335,7 +353,7 @@ function Home() {
               </span>
             )}
           </div>
-          <QueueTable entries={queue} loading={queueLoading} />
+          <QueueTable entries={queue} loading={queueLoading} titles={titles} />
         </div>
       </main>
     </div>
