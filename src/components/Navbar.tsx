@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { Mic2 } from 'lucide-react'
 
 export function Navbar() {
@@ -11,13 +12,19 @@ export function Navbar() {
           <span className="text-[15px] font-semibold tracking-tight">händlebar</span>
         </div>
 
-        <nav className="flex items-center">
-          <a
-            href="#"
+        <nav className="flex items-center gap-4">
+          <Link
+            to="/admin"
+            className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+          >
+            Admin
+          </Link>
+          <Link
+            to="/"
             className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-700"
           >
-            Sign in
-          </a>
+            Add Songs
+          </Link>
         </nav>
       </div>
     </header>

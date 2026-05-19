@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { Music2, Youtube, AtSign, User, Hash, Loader2 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
 import { supabase, type QueueRow } from '../lib/supabase'
-import { addToQueue } from '../lib/queue.functions'
+import { addToQueue, updateQueueLink } from '../lib/queue.functions'
 import { getYoutubeTitle } from '../lib/youtube.util'
 
 export const Route = createFileRoute('/')({ component: Home })
@@ -131,6 +131,145 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
   )
 }
 
+type ChangeFormState = { email: string; pin: string; newLink: string }
+type ChangeFieldError = Partial<Record<keyof ChangeFormState, string>>
+
+function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => void; className?: string }) {
+  const [form, setForm] = useState<ChangeFormState>({ email: '', pin: '', newLink: '' })
+  const [errors, setErrors] = useState<ChangeFieldError>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  function validate(): ChangeFieldError {
+    const e: ChangeFieldError = {}
+    if (!form.email.trim()) e.email = 'Email is required.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email.'
+    if (!form.pin) e.pin = 'PIN is required.'
+    else if (!/^\d{4}$/.test(form.pin)) e.pin = 'PIN must be exactly 4 digits.'
+    if (!form.newLink.trim()) e.newLink = 'YouTube link is required.'
+    else if (!form.newLink.includes('youtube.com') && !form.newLink.includes('youtu.be'))
+      e.newLink = 'Must be a valid YouTube link.'
+    return e
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+
+    setSubmitting(true)
+    setSubmitError(null)
+    setSuccess(false)
+
+    try {
+      const updated = await updateQueueLink({
+        data: { mail: form.email, pin: Number(form.pin), newLink: form.newLink },
+      })
+      onUpdated(updated)
+      setSuccess(true)
+      setForm({ email: '', pin: '', newLink: '' })
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function handleChange(field: keyof ChangeFormState) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      setForm(prev => ({ ...prev, [field]: e.target.value }))
+      if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
+      if (success) setSuccess(false)
+    }
+  }
+
+  return (
+    <div className={clsx('rounded-xl border border-gray-200 bg-white p-8 shadow-sm', className)}>
+      <h2 className="mb-1 text-lg font-semibold text-gray-900">Change Your Song</h2>
+      <p className="mb-6 text-sm text-gray-500">Already in the queue? Swap your karaoke track.</p>
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div>
+          <Label htmlFor="change-email">Email address</Label>
+          <InputWrapper icon={<AtSign className="h-4 w-4" />}>
+            <input
+              id="change-email"
+              type="email"
+              placeholder="jane@example.com"
+              value={form.email}
+              onChange={handleChange('email')}
+              className={clsx('input-base pl-9', errors.email && 'border-red-400 focus:border-red-400')}
+              suppressHydrationWarning
+            />
+          </InputWrapper>
+          <ErrorMsg message={errors.email} />
+        </div>
+
+        <div>
+          <Label htmlFor="change-pin">4-digit PIN</Label>
+          <InputWrapper icon={<Hash className="h-4 w-4" />}>
+            <input
+              id="change-pin"
+              type="password"
+              inputMode="numeric"
+              placeholder="••••"
+              maxLength={4}
+              value={form.pin}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 4)
+                setForm(prev => ({ ...prev, pin: val }))
+                if (errors.pin) setErrors(prev => ({ ...prev, pin: undefined }))
+                if (success) setSuccess(false)
+              }}
+              className={clsx('input-base pl-9', errors.pin && 'border-red-400 focus:border-red-400')}
+              suppressHydrationWarning
+            />
+          </InputWrapper>
+          <ErrorMsg message={errors.pin} />
+        </div>
+
+        <div>
+          <Label htmlFor="change-link">New karaoke link</Label>
+          <InputWrapper icon={<Youtube className="h-4 w-4" />}>
+            <input
+              id="change-link"
+              type="url"
+              placeholder="https://youtube.com/watch?v=..."
+              value={form.newLink}
+              onChange={handleChange('newLink')}
+              className={clsx('input-base pl-9', errors.newLink && 'border-red-400 focus:border-red-400')}
+              suppressHydrationWarning
+            />
+          </InputWrapper>
+          <ErrorMsg message={errors.newLink} />
+        </div>
+
+        {submitError && (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+            {submitError}
+          </p>
+        )}
+
+        {success && (
+          <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+            Song updated successfully!
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 active:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          {submitting ? 'Updating…' : 'Update Song'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function useIsMounted() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -225,11 +364,15 @@ function Home() {
     }
   }
 
+  function handleUpdated(updated: QueueRow) {
+    setQueue(prev => prev.map(e => e.id === updated.id ? updated : e))
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="mx-auto max-w-2xl px-6 py-16">
+      <main className="mx-auto max-w-4xl px-6 py-16">
         {/* Hero */}
         <div className="mb-10 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 shadow-sm">
@@ -244,102 +387,109 @@ function Home() {
           </p>
         </div>
 
-        {/* Form card — client-only to avoid SSR/extension hydration mismatch */}
-        <div className="mx-auto mb-10 max-w-md">
+        {/* Forms — client-only to avoid SSR/extension hydration mismatch */}
+        <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start">
           {!mounted ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-105" />
+            <>
+              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-115" />
+              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-100" />
+            </>
           ) : (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-            <h2 className="mb-1 text-lg font-semibold text-gray-900">Song Request</h2>
-            <p className="mb-6 text-sm text-gray-500">Fill in your details and paste your karaoke track.</p>
+            <>
+              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+                <h2 className="mb-1 text-lg font-semibold text-gray-900">Song Request</h2>
+                <p className="mb-6 text-sm text-gray-500">Fill in your details and paste your karaoke track.</p>
 
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
-              <div>
-                <Label htmlFor="name">Your name</Label>
-                <InputWrapper icon={<User className="h-4 w-4" />}>
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="Jane Doe"
-                    value={form.name}
-                    onChange={handleChange('name')}
-                    className={clsx('input-base pl-9', errors.name && 'border-red-400 focus:border-red-400')}
-                    suppressHydrationWarning
-                  />
-                </InputWrapper>
-                <ErrorMsg message={errors.name} />
+                <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                  <div>
+                    <Label htmlFor="name">Your name</Label>
+                    <InputWrapper icon={<User className="h-4 w-4" />}>
+                      <input
+                        id="name"
+                        type="text"
+                        placeholder="Jane Doe"
+                        value={form.name}
+                        onChange={handleChange('name')}
+                        className={clsx('input-base pl-9', errors.name && 'border-red-400 focus:border-red-400')}
+                        suppressHydrationWarning
+                      />
+                    </InputWrapper>
+                    <ErrorMsg message={errors.name} />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email address</Label>
+                    <InputWrapper icon={<AtSign className="h-4 w-4" />}>
+                      <input
+                        id="email"
+                        type="email"
+                        placeholder="jane@example.com"
+                        value={form.email}
+                        onChange={handleChange('email')}
+                        className={clsx('input-base pl-9', errors.email && 'border-red-400 focus:border-red-400')}
+                        suppressHydrationWarning
+                      />
+                    </InputWrapper>
+                    <ErrorMsg message={errors.email} />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pin">4-digit PIN</Label>
+                    <InputWrapper icon={<Hash className="h-4 w-4" />}>
+                      <input
+                        id="pin"
+                        type="password"
+                        inputMode="numeric"
+                        placeholder="••••"
+                        maxLength={4}
+                        value={form.pin}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 4)
+                          setForm(prev => ({ ...prev, pin: val }))
+                          if (errors.pin) setErrors(prev => ({ ...prev, pin: undefined }))
+                        }}
+                        className={clsx('input-base pl-9', errors.pin && 'border-red-400 focus:border-red-400')}
+                        suppressHydrationWarning
+                      />
+                    </InputWrapper>
+                    <ErrorMsg message={errors.pin} />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="youtubeLink">YouTube karaoke link</Label>
+                    <InputWrapper icon={<Youtube className="h-4 w-4" />}>
+                      <input
+                        id="youtubeLink"
+                        type="url"
+                        placeholder="https://youtube.com/watch?v=..."
+                        value={form.youtubeLink}
+                        onChange={handleChange('youtubeLink')}
+                        className={clsx('input-base pl-9', errors.youtubeLink && 'border-red-400 focus:border-red-400')}
+                        suppressHydrationWarning
+                      />
+                    </InputWrapper>
+                    <ErrorMsg message={errors.youtubeLink} />
+                  </div>
+
+                  {submitError && (
+                    <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                      {submitError}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 active:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {submitting ? 'Adding…' : 'Add to Queue'}
+                  </button>
+                </form>
               </div>
 
-              <div>
-                <Label htmlFor="email">Email address</Label>
-                <InputWrapper icon={<AtSign className="h-4 w-4" />}>
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="jane@example.com"
-                    value={form.email}
-                    onChange={handleChange('email')}
-                    className={clsx('input-base pl-9', errors.email && 'border-red-400 focus:border-red-400')}
-                    suppressHydrationWarning
-                  />
-                </InputWrapper>
-                <ErrorMsg message={errors.email} />
-              </div>
-
-              <div>
-                <Label htmlFor="pin">4-digit PIN</Label>
-                <InputWrapper icon={<Hash className="h-4 w-4" />}>
-                  <input
-                    id="pin"
-                    type="password"
-                    inputMode="numeric"
-                    placeholder="••••"
-                    maxLength={4}
-                    value={form.pin}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 4)
-                      setForm(prev => ({ ...prev, pin: val }))
-                      if (errors.pin) setErrors(prev => ({ ...prev, pin: undefined }))
-                    }}
-                    className={clsx('input-base pl-9', errors.pin && 'border-red-400 focus:border-red-400')}
-                    suppressHydrationWarning
-                  />
-                </InputWrapper>
-                <ErrorMsg message={errors.pin} />
-              </div>
-
-              <div>
-                <Label htmlFor="youtubeLink">YouTube karaoke link</Label>
-                <InputWrapper icon={<Youtube className="h-4 w-4" />}>
-                  <input
-                    id="youtubeLink"
-                    type="url"
-                    placeholder="https://youtube.com/watch?v=..."
-                    value={form.youtubeLink}
-                    onChange={handleChange('youtubeLink')}
-                    className={clsx('input-base pl-9', errors.youtubeLink && 'border-red-400 focus:border-red-400')}
-                    suppressHydrationWarning
-                  />
-                </InputWrapper>
-                <ErrorMsg message={errors.youtubeLink} />
-              </div>
-
-              {submitError && (
-                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-                  {submitError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 active:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? 'Adding…' : 'Add to Queue'}
-              </button>
-            </form>
-          </div>
+              <ChangeForm onUpdated={handleUpdated} className="flex-1" />
+            </>
           )}
         </div>
 
