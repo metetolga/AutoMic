@@ -1,13 +1,31 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { Music2, Youtube, AtSign, User, Hash, Loader2 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
 import { supabase, type QueueRow } from '../lib/supabase'
 import { addToQueue, updateQueueLink } from '../lib/queue.functions'
 import { getYoutubeTitle } from '../lib/youtube.util'
+import { AddToQueueSchema, ChangeSongSchema } from '../lib/schemas'
 
-export const Route = createFileRoute('/')({ component: Home })
+export const Route = createFileRoute('/')({
+  component: Home,
+  loader: () => ({ turnstileSiteKey: process.env.TURNSTILE_SITE_KEY ?? '' }),
+})
+
+declare global {
+  interface Window {
+    turnstile: {
+      render: (el: HTMLElement, opts: {
+        sitekey: string
+        callback: (token: string) => void
+        'expired-callback': () => void
+        'error-callback': () => void
+      }) => string
+      remove: (widgetId: string) => void
+    }
+  }
+}
 
 type FormState = {
   name: string
@@ -141,22 +159,18 @@ function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => vo
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  function validate(): ChangeFieldError {
-    const e: ChangeFieldError = {}
-    if (!form.email.trim()) e.email = 'Email is required.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email.'
-    if (!form.pin) e.pin = 'PIN is required.'
-    else if (!/^\d{4}$/.test(form.pin)) e.pin = 'PIN must be exactly 4 digits.'
-    if (!form.newLink.trim()) e.newLink = 'YouTube link is required.'
-    else if (!form.newLink.includes('youtube.com') && !form.newLink.includes('youtu.be'))
-      e.newLink = 'Must be a valid YouTube link.'
-    return e
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
-    const errs = validate()
-    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    const result = ChangeSongSchema.safeParse(form)
+    if (!result.success) {
+      const fe: Record<string, string> = {}
+      for (const issue of result.error.issues) {
+        const k = String(issue.path[0])
+        if (k && !fe[k]) fe[k] = issue.message
+      }
+      setErrors({ email: fe.email, pin: fe.pin, newLink: fe.newLink })
+      return
+    }
 
     setSubmitting(true)
     setSubmitError(null)
@@ -164,7 +178,7 @@ function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => vo
 
     try {
       const updated = await updateQueueLink({
-        data: { mail: form.email, pin: Number(form.pin), newLink: form.newLink },
+        data: { mail: result.data.email, pin: Number(result.data.pin), newLink: result.data.newLink },
       })
       onUpdated(updated)
       setSuccess(true)
@@ -270,6 +284,47 @@ function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => vo
   )
 }
 
+function TurnstileWidget({ siteKey, onToken }: { siteKey: string; onToken: (token: string | null) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const onTokenRef = useRef(onToken)
+  onTokenRef.current = onToken
+
+  useEffect(() => {
+    let widgetId: string | undefined
+
+    function render() {
+      if (!containerRef.current || !window.turnstile) return
+      widgetId = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        callback: (t) => onTokenRef.current(t),
+        'expired-callback': () => onTokenRef.current(null),
+        'error-callback': () => onTokenRef.current(null),
+      })
+    }
+
+    if (typeof window !== 'undefined' && window.turnstile) {
+      render()
+    } else {
+      const existing = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')
+      if (existing) {
+        existing.addEventListener('load', render, { once: true })
+      } else {
+        const script = document.createElement('script')
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+        script.async = true
+        script.addEventListener('load', render, { once: true })
+        document.head.appendChild(script)
+      }
+    }
+
+    return () => {
+      if (widgetId !== undefined && window.turnstile) window.turnstile.remove(widgetId)
+    }
+  }, [siteKey])
+
+  return <div ref={containerRef} />
+}
+
 function useIsMounted() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -279,11 +334,15 @@ function useIsMounted() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function Home() {
+  const { turnstileSiteKey } = Route.useLoaderData()
   const mounted = useIsMounted()
   const [form, setForm] = useState<FormState>({ name: '', email: '', pin: '', youtubeLink: '' })
   const [errors, setErrors] = useState<FieldError>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileKey, setTurnstileKey] = useState(0)
+  const [turnstileError, setTurnstileError] = useState(false)
 
   const [queue, setQueue] = useState<QueueRow[]>([])
   const [queueLoading, setQueueLoading] = useState(true)
@@ -317,41 +376,43 @@ function Home() {
     })
   }, [queue])
 
-  function validate(): FieldError {
-    const e: FieldError = {}
-    if (!form.name.trim()) e.name = 'Name is required.'
-    if (!form.email.trim()) e.email = 'Email is required.'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email.'
-    if (!form.pin) e.pin = 'PIN is required.'
-    else if (!/^\d{4}$/.test(form.pin)) e.pin = 'PIN must be exactly 4 digits.'
-    if (!form.youtubeLink.trim()) e.youtubeLink = 'YouTube link is required.'
-    else if (!form.youtubeLink.includes('youtube.com') && !form.youtubeLink.includes('youtu.be'))
-      e.youtubeLink = 'Must be a valid YouTube link.'
-    return e
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
-    const errs = validate()
-    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    const result = AddToQueueSchema.safeParse(form)
+    if (!result.success) {
+      const fe: Record<string, string> = {}
+      for (const issue of result.error.issues) {
+        const k = String(issue.path[0])
+        if (k && !fe[k]) fe[k] = issue.message
+      }
+      setErrors({ name: fe.name, email: fe.email, pin: fe.pin, youtubeLink: fe.youtubeLink })
+      return
+    }
+    if (!turnstileToken) { setTurnstileError(true); return }
 
     setSubmitting(true)
     setSubmitError(null)
+    setTurnstileError(false)
 
     try {
       const inserted = await addToQueue({
         data: {
-          name: form.name,
-          mail: form.email,
-          pin:  Number(form.pin),
-          link: form.youtubeLink,
+          name: result.data.name,
+          mail: result.data.email,
+          pin:  Number(result.data.pin),
+          link: result.data.youtubeLink,
+          turnstileToken,
         },
       })
       setQueue(prev => [...prev, inserted])
       setErrors({})
       setForm({ name: '', email: '', pin: '', youtubeLink: '' })
+      setTurnstileToken(null)
+      setTurnstileKey(k => k + 1)
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : String(err))
+      setTurnstileToken(null)
+      setTurnstileKey(k => k + 1)
     } finally {
       setSubmitting(false)
     }
@@ -476,6 +537,17 @@ function Home() {
                       {submitError}
                     </p>
                   )}
+
+                  <div>
+                    <TurnstileWidget
+                      key={turnstileKey}
+                      siteKey={turnstileSiteKey}
+                      onToken={(t) => { setTurnstileToken(t); if (t) setTurnstileError(false) }}
+                    />
+                    {turnstileError && (
+                      <p className="mt-1.5 text-xs text-red-500">Please complete the security check.</p>
+                    )}
+                  </div>
 
                   <button
                     type="submit"

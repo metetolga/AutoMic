@@ -6,14 +6,26 @@ type InsertInput = {
   mail: string
   pin: number
   link: string
+  turnstileToken: string
 }
 
 export const addToQueue = createServerFn({ method: 'POST' })
   .inputValidator((data: InsertInput) => data)
   .handler(async ({ data }) => {
+    const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: process.env.TURNSTILE_SECRET_KEY!,
+        response: data.turnstileToken,
+      }),
+    })
+    const verify = await verifyRes.json() as { success: boolean }
+    if (!verify.success) throw new Error('Security check failed. Please try again.')
+
     const { data: inserted, error } = await supabase
       .from('queue')
-      .insert(data)
+      .insert({ name: data.name, mail: data.mail, pin: data.pin, link: data.link })
       .select()
       .single()
 
