@@ -4,13 +4,17 @@ import { clsx } from 'clsx'
 import { Music2, Youtube, AtSign, User, Hash, Loader2 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
 import { supabase, type QueueRow } from '../lib/supabase'
-import { addToQueue, updateQueueLink } from '../lib/queue.functions'
+import { addToQueue, updateQueueLink, getTurnstileSiteKey, getAppState } from '../lib/queue.functions'
 import { getYoutubeTitle } from '../lib/youtube.util'
 import { AddToQueueSchema, ChangeSongSchema } from '../lib/schemas'
 
 export const Route = createFileRoute('/')({
   component: Home,
-  loader: () => ({ turnstileSiteKey: process.env.TURNSTILE_SITE_KEY ?? '' }),
+  loader: async () => {
+    const [siteKey, appState] = await Promise.all([getTurnstileSiteKey(), getAppState()])
+    return { ...siteKey, ...appState }
+  },
+  staleTime: 0,
 })
 
 declare global {
@@ -152,12 +156,15 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
 type ChangeFormState = { email: string; pin: string; newLink: string }
 type ChangeFieldError = Partial<Record<keyof ChangeFormState, string>>
 
-function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => void; className?: string }) {
+function ChangeForm({ onUpdated, className, siteKey }: { onUpdated: (row: QueueRow) => void; className?: string; siteKey: string }) {
   const [form, setForm] = useState<ChangeFormState>({ email: '', pin: '', newLink: '' })
   const [errors, setErrors] = useState<ChangeFieldError>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileKey, setTurnstileKey] = useState(0)
+  const [turnstileError, setTurnstileError] = useState(false)
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
@@ -171,20 +178,26 @@ function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => vo
       setErrors({ email: fe.email, pin: fe.pin, newLink: fe.newLink })
       return
     }
+    if (!turnstileToken) { setTurnstileError(true); return }
 
     setSubmitting(true)
     setSubmitError(null)
     setSuccess(false)
+    setTurnstileError(false)
 
     try {
       const updated = await updateQueueLink({
-        data: { mail: result.data.email, pin: Number(result.data.pin), newLink: result.data.newLink },
+        data: { mail: result.data.email, pin: Number(result.data.pin), newLink: result.data.newLink, turnstileToken },
       })
       onUpdated(updated)
       setSuccess(true)
       setForm({ email: '', pin: '', newLink: '' })
+      setTurnstileToken(null)
+      setTurnstileKey(k => k + 1)
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : String(err))
+      setTurnstileToken(null)
+      setTurnstileKey(k => k + 1)
     } finally {
       setSubmitting(false)
     }
@@ -271,6 +284,17 @@ function ChangeForm({ onUpdated, className }: { onUpdated: (row: QueueRow) => vo
           </p>
         )}
 
+        <div>
+          <TurnstileWidget
+            key={turnstileKey}
+            siteKey={siteKey}
+            onToken={(t) => { setTurnstileToken(t); if (t) setTurnstileError(false) }}
+          />
+          {turnstileError && (
+            <p className="mt-1.5 text-xs text-red-500">Please complete the security check.</p>
+          )}
+        </div>
+
         <button
           type="submit"
           disabled={submitting}
@@ -334,7 +358,20 @@ function useIsMounted() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function Home() {
-  const { turnstileSiteKey } = Route.useLoaderData()
+  const { turnstileSiteKey, isActive } = Route.useLoaderData()
+
+  if (!isActive) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-6 text-center">
+          <p className="mb-4 text-5xl">🎤</p>
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">Karaoke Night is currently closed!</h2>
+          <p className="max-w-sm text-gray-500">We'll see you at the next bar night. Check our Instagram for dates.</p>
+        </div>
+      </div>
+    )
+  }
   const mounted = useIsMounted()
   const [form, setForm] = useState<FormState>({ name: '', email: '', pin: '', youtubeLink: '' })
   const [errors, setErrors] = useState<FieldError>({})
@@ -560,7 +597,7 @@ function Home() {
                 </form>
               </div>
 
-              <ChangeForm onUpdated={handleUpdated} className="flex-1" />
+              <ChangeForm onUpdated={handleUpdated} className="flex-1" siteKey={turnstileSiteKey} />
             </>
           )}
         </div>

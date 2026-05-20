@@ -1,10 +1,11 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
-import { Mic2, Loader2, Trash2, Music2, Youtube, LogOut, ArrowLeft } from 'lucide-react'
+import { Mic2, Loader2, Trash2, Music2, Youtube, LogOut, ArrowLeft, LockOpen, AtSign, Power, PowerOff } from 'lucide-react'
 import { supabase, type QueueRow } from '../../lib/supabase'
 import { getAuthClient } from '../../lib/supabase.auth'
 import { getYoutubeTitle } from '../../lib/youtube.util'
+import { unlockAccess, getAppState, setSessionActive } from '../../lib/queue.functions'
 
 export const Route = createFileRoute('/admin/')({
   beforeLoad: async () => {
@@ -45,6 +46,14 @@ function AdminDashboard() {
   const [copied, setCopied] = useState<number | null>(null)
   const [titles, setTitles] = useState<Record<string, string>>({})
   const [playingIndex, setPlayingIndex] = useState(0)
+  const [unlockEmail, setUnlockEmail] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
+  const [unlockError, setUnlockError] = useState<string | null>(null)
+  const [unlockSuccess, setUnlockSuccess] = useState(false)
+
+  const [isActive, setIsActive] = useState<boolean | null>(null)
+  const [sessionWorking, setSessionWorking] = useState(false)
+  const [sessionMsg, setSessionMsg] = useState<{ type: 'warning' | 'error'; text: string } | null>(null)
 
   async function handleCopyEmail(email: string, id: number) {
     await navigator.clipboard.writeText(email)
@@ -52,7 +61,7 @@ function AdminDashboard() {
     setTimeout(() => setCopied(prev => (prev === id ? null : prev)), 1500)
   }
 
-useEffect(() => {
+  useEffect(() => {
     supabase
       .from('queue')
       .select('*')
@@ -61,6 +70,7 @@ useEffect(() => {
         if (data) setQueue(data as QueueRow[])
         setLoading(false)
       })
+    getAppState().then(({ isActive }) => setIsActive(isActive))
   }, [])
 
   useEffect(() => {
@@ -84,6 +94,51 @@ useEffect(() => {
     const { error } = await supabase.from('queue').delete().eq('id', id)
     if (!error) setQueue(prev => prev.filter(e => e.id !== id))
     setDeleting(null)
+  }
+
+  async function handleCreateSession() {
+    if (isActive === true) { setSessionMsg({ type: 'warning', text: 'Session is already active.' }); return }
+    setSessionWorking(true)
+    setSessionMsg(null)
+    try {
+      await setSessionActive({ data: { active: true } })
+      setIsActive(true)
+    } catch (err: unknown) {
+      setSessionMsg({ type: 'error', text: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setSessionWorking(false)
+    }
+  }
+
+  async function handleEndSession() {
+    if (isActive === false) { setSessionMsg({ type: 'warning', text: 'Session is already ended.' }); return }
+    setSessionWorking(true)
+    setSessionMsg(null)
+    try {
+      await setSessionActive({ data: { active: false } })
+      setIsActive(false)
+    } catch (err: unknown) {
+      setSessionMsg({ type: 'error', text: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setSessionWorking(false)
+    }
+  }
+
+  async function handleUnlock(e: React.FormEvent) {
+    e.preventDefault()
+    if (!unlockEmail.trim()) return
+    setUnlocking(true)
+    setUnlockError(null)
+    setUnlockSuccess(false)
+    try {
+      await unlockAccess({ data: { mail: unlockEmail.trim() } })
+      setUnlockSuccess(true)
+      setUnlockEmail('')
+    } catch (err: unknown) {
+      setUnlockError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setUnlocking(false)
+    }
   }
 
   async function handleLogout() {
@@ -125,6 +180,95 @@ useEffect(() => {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-12">
+
+        {/* Session + Unlock cards */}
+        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+
+          {/* Session Management */}
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Session</h2>
+                <p className="mt-0.5 text-sm text-gray-500">Control karaoke night availability.</p>
+              </div>
+              {isActive === null ? (
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              ) : (
+                <span className={clsx(
+                  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                  isActive
+                    ? 'border-green-200 bg-green-50 text-green-700'
+                    : 'border-gray-200 bg-gray-100 text-gray-500',
+                )}>
+                  {isActive ? 'Active' : 'Inactive'}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3 p-5">
+              <button
+                onClick={handleCreateSession}
+                disabled={sessionWorking || isActive === null}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sessionWorking && isActive !== true ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                Create Session
+              </button>
+              <button
+                onClick={handleEndSession}
+                disabled={sessionWorking || isActive === null}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sessionWorking && isActive !== false ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />}
+                End Session
+              </button>
+            </div>
+            {sessionMsg && (
+              <div className="border-t border-gray-100 px-5 pb-4">
+                <p className={clsx('text-xs', sessionMsg.type === 'error' ? 'text-red-500' : 'text-amber-600')}>
+                  {sessionMsg.text}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Unlock Access */}
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-5 py-4">
+              <h2 className="text-base font-semibold text-gray-900">Unlock Access</h2>
+              <p className="mt-0.5 text-sm text-gray-500">Reset the failed-attempt counter for a locked entry.</p>
+            </div>
+            <form onSubmit={handleUnlock} noValidate className="flex items-start gap-3 p-5">
+              <div className="relative flex-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <AtSign className="h-4 w-4" />
+                </div>
+                <input
+                  type="email"
+                  placeholder="jane@example.com"
+                  value={unlockEmail}
+                  onChange={(e) => { setUnlockEmail(e.target.value); setUnlockError(null); setUnlockSuccess(false) }}
+                  className="input-base pl-9"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={unlocking || !unlockEmail.trim()}
+                className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockOpen className="h-4 w-4" />}
+                Unlock
+              </button>
+            </form>
+            {(unlockError || unlockSuccess) && (
+              <div className="border-t border-gray-100 px-5 pb-4">
+                {unlockSuccess && <p className="text-xs text-green-700">Access unlocked successfully.</p>}
+                {unlockError && <p className="text-xs text-red-500">{unlockError}</p>}
+              </div>
+            )}
+          </div>
+
+        </div>
+
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">Queue</h1>

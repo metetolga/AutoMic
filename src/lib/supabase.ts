@@ -7,6 +7,7 @@ export type QueueRow = {
   mail: string
   pin: number
   link: string
+  failed_pin_attempts: number
 }
 
 export const supabase = createClient(
