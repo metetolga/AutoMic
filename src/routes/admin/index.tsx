@@ -107,6 +107,11 @@ function AdminDashboard() {
     try {
       await setSessionActive({ data: { active: !isActive } })
       setIsActive(!isActive)
+      if (isActive) {
+        setQueue([])
+        setTitles({})
+        setPlayingIndex(0)
+      }
     } catch (err: unknown) {
       setSessionMsg({ type: 'error', text: err instanceof Error ? err.message : String(err) })
     } finally {
@@ -145,7 +150,7 @@ function AdminDashboard() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Mic2 className="h-4 w-4 text-white" />
             </div>
-            <span className="text-[15px] font-semibold tracking-tight">händlebar</span>
+            <span className="text-[15px] font-semibold tracking-tight">AutoMic</span>
             <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
               admin
             </span>

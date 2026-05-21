@@ -9,7 +9,7 @@ export function Navbar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Mic2 className="h-4 w-4 text-white" />
           </div>
-          <span className="text-[15px] font-semibold tracking-tight">händlebar</span>
+          <span className="text-[15px] font-semibold tracking-tight">AutoMic</span>
         </div>
 
         <nav className="flex items-center gap-4">

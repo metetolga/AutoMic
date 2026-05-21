@@ -31,6 +31,11 @@ export const setSessionActive = createServerFn({ method: 'POST' })
     if (error) throw new Error(error.message)
     if (!rows || rows.length === 0)
       throw new Error('No rows updated — check that the app_state table has at least one row.')
+
+    if (!data.active) {
+      const { error: clearError } = await admin.from('queue').delete().gte('id', 0)
+      if (clearError) throw new Error(clearError.message)
+    }
   })
 
 type InsertInput = {
