@@ -16,7 +16,7 @@ const pin = z
 const email = z.string().email('Enter a valid email.').max(255, 'Email is too long.')
 
 export const AddToQueueSchema = z.object({
-  name:        z.string().trim().min(2, 'Name must be at least 2 characters.').max(30, 'Name must be at most 30 characters.'),
+  name:        z.string().trim().min(2, 'Name must be at least 2 characters.').max(20, 'Name must be at most 20 characters.'),
   email,
   pin,
   youtubeLink: youtubeUrl,

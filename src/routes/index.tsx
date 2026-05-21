@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
-import { Music2, Youtube, AtSign, User, Hash, Loader2 } from 'lucide-react'
+import { Music2, Clapperboard, AtSign, User, Hash, Loader2 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
 import { supabase, type QueueRow } from '../lib/supabase'
 import { addToQueue, updateQueueLink, getTurnstileSiteKey, getAppState } from '../lib/queue.functions'
@@ -39,6 +39,10 @@ type FormState = {
 }
 
 type FieldError = Partial<Record<keyof FormState, string>>
+
+function trunc(s: string, n: number) {
+  return s.length > n ? s.slice(0, n) + '…' : s
+}
 
 function statusForIndex(i: number): 'now-playing' | 'up-next' | 'waiting' {
   if (i === 0) return 'now-playing'
@@ -122,17 +126,24 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
                 className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50"
               >
                 <td className="px-4 py-3 tabular-nums text-gray-400">{i + 1}</td>
-                <td className="px-4 py-3 font-medium text-gray-900">{entry.name}</td>
+                <td className="px-4 py-3 font-medium text-gray-900">{trunc(entry.name, 18)}</td>
                 <td className="max-w-xs px-4 py-3">
-                  <a
-                    href={entry.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex max-w-full items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
-                  >
-                    <Youtube className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                    <span className="truncate text-xs">{titles[entry.link] || entry.link}</span>
-                  </a>
+                  <div className="group relative">
+                    <a
+                      href={entry.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
+                    >
+                      <Clapperboard className="h-3.5 w-3.5 shrink-0 text-red-500" />
+                      <span className="text-xs">{trunc(titles[entry.link] || entry.link, 38)}</span>
+                    </a>
+                    {(titles[entry.link] || entry.link).length > 38 && (
+                      <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100">
+                        {titles[entry.link] || entry.link}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span
@@ -258,7 +269,7 @@ function ChangeForm({ onUpdated, className, siteKey }: { onUpdated: (row: QueueR
 
         <div>
           <Label htmlFor="change-link">New karaoke link</Label>
-          <InputWrapper icon={<Youtube className="h-4 w-4" />}>
+          <InputWrapper icon={<Clapperboard className="h-4 w-4" />}>
             <input
               id="change-link"
               type="url"
@@ -555,7 +566,7 @@ function Home() {
 
                   <div>
                     <Label htmlFor="youtubeLink">YouTube karaoke link</Label>
-                    <InputWrapper icon={<Youtube className="h-4 w-4" />}>
+                    <InputWrapper icon={<Clapperboard className="h-4 w-4" />}>
                       <input
                         id="youtubeLink"
                         type="url"

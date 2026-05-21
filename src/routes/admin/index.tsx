@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
-import { Mic2, Loader2, Trash2, Music2, Youtube, LogOut, ArrowLeft, LockOpen, AtSign, Power, PowerOff } from 'lucide-react'
+import { Mic2, Loader2, Trash2, Music2, Clapperboard, LogOut, ArrowLeft, LockOpen, AtSign, Power, PowerOff } from 'lucide-react'
 import { supabase, type QueueRow } from '../../lib/supabase'
 import { getAuthClient } from '../../lib/supabase.auth'
 import { getYoutubeTitle } from '../../lib/youtube.util'
@@ -16,6 +16,10 @@ export const Route = createFileRoute('/admin/')({
   },
   component: AdminDashboard,
 })
+
+function trunc(s: string, n: number) {
+  return s.length > n ? s.slice(0, n) + '…' : s
+}
 
 function statusForEntry(i: number, playingIndex: number): 'played' | 'now-playing' | 'up-next' | 'waiting' {
   if (i < playingIndex) return 'played'
@@ -282,9 +286,9 @@ function AdminDashboard() {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="h-10 w-10 px-4 text-left font-medium text-gray-500">#</th>
-                  <th className="h-10 px-4 text-left font-medium text-gray-500">Name</th>
-                  <th className="h-10 px-4 text-left font-medium text-gray-500">Email</th>
-                  <th className="h-10 w-32 px-4 text-left font-medium text-gray-500">Song</th>
+                  <th className="h-10 w-48 px-4 text-left font-medium text-gray-500">Name</th>
+                  <th className="h-10 w-48 px-4 text-left font-medium text-gray-500">Email</th>
+                  <th className="h-10 w-88 px-4 text-left font-medium text-gray-500">Karaoke</th>
                   <th className="h-10 px-4 text-left font-medium text-gray-500">Status</th>
                   <th className="h-10 px-4" />
                 </tr>
@@ -301,33 +305,40 @@ function AdminDashboard() {
                       )}
                     >
                       <td className="px-4 py-3 tabular-nums text-gray-400">{i + 1}</td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{entry.name}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{trunc(entry.name, 18)}</td>
                       <td className="px-4 py-3">
                         <div className="group relative inline-block">
                           <button
                             onClick={() => handleCopyEmail(entry.mail, entry.id)}
                             className="text-xs text-gray-500 transition-colors hover:text-gray-900"
                           >
-                            {entry.mail}
+                            {trunc(entry.mail, 22)}
                           </button>
-                          <span className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded bg-gray-900 px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                            {copied === entry.id ? 'Copied!' : 'Copy'}
-                          </span>
+                          {entry.mail.length > 22 && (
+                            <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100">
+                              {copied === entry.id ? 'Copied!' : entry.mail}
+                            </span>
+                          )}
                         </div>
                       </td>
-                      <td className="w-28 px-4 py-3">
-                        <a
-                          href={entry.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setPlayingIndex(i)}
-                          className="inline-flex w-full items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
-                        >
-                          <Youtube className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                          <span className="truncate text-xs">
-                            {titles[entry.link] || entry.link}
-                          </span>
-                        </a>
+                      <td className="px-4 py-3">
+                        <div className="group relative">
+                          <a
+                            href={entry.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setPlayingIndex(i)}
+                            className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
+                          >
+                            <Clapperboard className="h-3.5 w-3.5 shrink-0 text-red-500" />
+                            <span className="text-xs">{trunc(titles[entry.link] || entry.link, 44)}</span>
+                          </a>
+                          {(titles[entry.link] || entry.link).length > 44 && (
+                            <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100">
+                              {titles[entry.link] || entry.link}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <span
