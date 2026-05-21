@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { createClient } from '@supabase/supabase-js'
 import { supabase, type QueueRow } from './supabase'
 
 export const getTurnstileSiteKey = createServerFn({ method: 'GET' })
@@ -6,14 +7,22 @@ export const getTurnstileSiteKey = createServerFn({ method: 'GET' })
 
 export const getAppState = createServerFn({ method: 'GET' })
   .handler(async () => {
-    const { data } = await supabase.from('app_state').select('is_active').single()
+    const admin = createClient(
+      process.env.VITE_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data } = await admin.from('app_state').select('is_active').single()
     return { isActive: (data?.is_active ?? false) as boolean }
   })
 
 export const setSessionActive = createServerFn({ method: 'POST' })
   .inputValidator((data: { active: boolean }) => data)
   .handler(async ({ data }) => {
-    const { data: rows, error } = await supabase
+    const admin = createClient(
+      process.env.VITE_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: rows, error } = await admin
       .from('app_state')
       .update({ is_active: data.active })
       .gte('id', 0)
@@ -35,7 +44,11 @@ type InsertInput = {
 export const addToQueue = createServerFn({ method: 'POST' })
   .inputValidator((data: InsertInput) => data)
   .handler(async ({ data }) => {
-    const { data: appState } = await supabase.from('app_state').select('is_active').single()
+    const admin = createClient(
+      process.env.VITE_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: appState } = await admin.from('app_state').select('is_active').single()
     if (!appState?.is_active) throw new Error('Karaoke night is currently closed.')
 
     const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {

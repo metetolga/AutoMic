@@ -131,7 +131,7 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
                     className="inline-flex max-w-full items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
                   >
                     <Youtube className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                    <span className="truncate text-xs">{titles[entry.link] ?? entry.link}</span>
+                    <span className="truncate text-xs">{titles[entry.link] || entry.link}</span>
                   </a>
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -404,12 +404,12 @@ function Home() {
       missing.map(link =>
         getYoutubeTitle(link)
           .then(title => ({ link, title }))
-          .catch(() => null)
+          .catch(() => ({ link, title: '' }))
       )
     ).then(results => {
       const updates: Record<string, string> = {}
-      for (const r of results) if (r) updates[r.link] = r.title
-      if (Object.keys(updates).length > 0) setTitles(prev => ({ ...prev, ...updates }))
+      for (const r of results) updates[r.link] = r.title
+      setTitles(prev => ({ ...prev, ...updates }))
     })
   }, [queue])
 

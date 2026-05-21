@@ -80,12 +80,12 @@ function AdminDashboard() {
       missing.map(link =>
         getYoutubeTitle(link)
           .then(title => ({ link, title }))
-          .catch(() => null)
+          .catch(() => ({ link, title: '' }))
       )
     ).then(results => {
       const updates: Record<string, string> = {}
-      for (const r of results) if (r) updates[r.link] = r.title
-      if (Object.keys(updates).length > 0) setTitles(prev => ({ ...prev, ...updates }))
+      for (const r of results) updates[r.link] = r.title
+      setTitles(prev => ({ ...prev, ...updates }))
     })
   }, [queue])
 
@@ -96,27 +96,13 @@ function AdminDashboard() {
     setDeleting(null)
   }
 
-  async function handleCreateSession() {
-    if (isActive === true) { setSessionMsg({ type: 'warning', text: 'Session is already active.' }); return }
+  async function handleToggleSession() {
+    if (isActive === null) return
     setSessionWorking(true)
     setSessionMsg(null)
     try {
-      await setSessionActive({ data: { active: true } })
-      setIsActive(true)
-    } catch (err: unknown) {
-      setSessionMsg({ type: 'error', text: err instanceof Error ? err.message : String(err) })
-    } finally {
-      setSessionWorking(false)
-    }
-  }
-
-  async function handleEndSession() {
-    if (isActive === false) { setSessionMsg({ type: 'warning', text: 'Session is already ended.' }); return }
-    setSessionWorking(true)
-    setSessionMsg(null)
-    try {
-      await setSessionActive({ data: { active: false } })
-      setIsActive(false)
+      await setSessionActive({ data: { active: !isActive } })
+      setIsActive(!isActive)
     } catch (err: unknown) {
       setSessionMsg({ type: 'error', text: err instanceof Error ? err.message : String(err) })
     } finally {
@@ -204,22 +190,21 @@ function AdminDashboard() {
                 </span>
               )}
             </div>
-            <div className="flex gap-3 p-5">
+            <div className="p-5">
               <button
-                onClick={handleCreateSession}
+                onClick={handleToggleSession}
                 disabled={sessionWorking || isActive === null}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className={clsx(
+                  'flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                  isActive
+                    ? 'border border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+                    : 'bg-gray-900 text-white hover:bg-gray-700',
+                )}
               >
-                {sessionWorking && isActive !== true ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
-                Create Session
-              </button>
-              <button
-                onClick={handleEndSession}
-                disabled={sessionWorking || isActive === null}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {sessionWorking && isActive !== false ? <Loader2 className="h-4 w-4 animate-spin" /> : <PowerOff className="h-4 w-4" />}
-                End Session
+                {sessionWorking
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                {isActive ? 'End Session' : 'Create Session'}
               </button>
             </div>
             {sessionMsg && (
@@ -248,6 +233,7 @@ function AdminDashboard() {
                   value={unlockEmail}
                   onChange={(e) => { setUnlockEmail(e.target.value); setUnlockError(null); setUnlockSuccess(false) }}
                   className="input-base pl-9"
+                  suppressHydrationWarning
                 />
               </div>
               <button
@@ -339,7 +325,7 @@ function AdminDashboard() {
                         >
                           <Youtube className="h-3.5 w-3.5 shrink-0 text-red-500" />
                           <span className="truncate text-xs">
-                            {titles[entry.link] ?? entry.link}
+                            {titles[entry.link] || entry.link}
                           </span>
                         </a>
                       </td>
