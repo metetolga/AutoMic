@@ -55,6 +55,8 @@ function AdminDashboard() {
   const [unlockError, setUnlockError] = useState<string | null>(null)
   const [unlockSuccess, setUnlockSuccess] = useState(false)
 
+  const [lastLink, setLastLink] = useState<{ url: string; title: string } | null>(null)
+
   const [isActive, setIsActive] = useState<boolean | null>(null)
   const [sessionWorking, setSessionWorking] = useState(false)
   const [sessionMsg, setSessionMsg] = useState<{ type: 'warning' | 'error'; text: string } | null>(null)
@@ -98,6 +100,13 @@ function AdminDashboard() {
     const { error } = await supabase.from('queue').delete().eq('id', id)
     if (!error) setQueue(prev => prev.filter(e => e.id !== id))
     setDeleting(null)
+  }
+
+  function handlePlayLink(entry: QueueRow) {
+    const title = titles[entry.link] || entry.link
+    window.open(entry.link, '_blank', 'noopener,noreferrer,width=1280,height=800')
+    setLastLink({ url: entry.link, title })
+    handleDelete(entry.id)
   }
 
   async function handleToggleSession() {
@@ -268,6 +277,19 @@ function AdminDashboard() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">Queue</h1>
             <p className="mt-0.5 text-sm text-gray-500">Remove entries to advance the queue.</p>
+            {lastLink && (
+              <p className="mt-1 text-xs text-gray-400">
+                Last clicked link:{' '}
+                <a
+                  href={lastLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-600 underline hover:text-gray-900"
+                >
+                  {trunc(lastLink.title, 60)}
+                </a>
+              </p>
+            )}
           </div>
           {!loading && (
             <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
@@ -330,9 +352,7 @@ function AdminDashboard() {
                         <div className="group relative">
                           <a
                             href={entry.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => setPlayingIndex(i)}
+                            onClick={(e) => { e.preventDefault(); handlePlayLink(entry) }}
                             className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
                           >
                             <Clapperboard className="h-3.5 w-3.5 shrink-0 text-red-500" />

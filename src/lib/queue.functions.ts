@@ -92,7 +92,11 @@ export const addToQueue = createServerFn({ method: 'POST' })
       .select()
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (error.code === '23505')
+        throw new Error('You already have a song in the queue. Edit your existing entry instead.')
+      throw new Error(error.message)
+    }
 
     await admin
       .from('user_activity')
