@@ -46,6 +46,8 @@ type InsertInput = {
   turnstileToken: string
 }
 
+const COOLDOWN_MS = 25 * 60 * 1000
+
 export const addToQueue = createServerFn({ method: 'POST' })
   .inputValidator((data: InsertInput) => data)
   .handler(async ({ data }) => {
@@ -53,6 +55,7 @@ export const addToQueue = createServerFn({ method: 'POST' })
       process.env.VITE_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
+
     const { data: appState } = await admin.from('app_state').select('is_active').single()
     if (!appState?.is_active) throw new Error('Karaoke night is currently closed.')
 
@@ -67,13 +70,34 @@ export const addToQueue = createServerFn({ method: 'POST' })
     const verify = await verifyRes.json() as { success: boolean }
     if (!verify.success) throw new Error('Security check failed. Please try again.')
 
-    const { data: inserted, error } = await supabase
+    const { data: activity } = await admin
+      .from('user_activity')
+      .select('last_song_added_at')
+      .eq('email', data.mail)
+      .maybeSingle()
+
+    if (activity?.last_song_added_at) {
+      const elapsed = Date.now() - new Date(activity.last_song_added_at).getTime()
+      if (elapsed < COOLDOWN_MS) {
+        const remainingMin = Math.ceil((COOLDOWN_MS - elapsed) / 60000)
+        throw new Error(
+          `Cooldown active. You can add another song in ${remainingMin} minute${remainingMin !== 1 ? 's' : ''}.`,
+        )
+      }
+    }
+
+    const { data: inserted, error } = await admin
       .from('queue')
       .insert({ name: data.name, mail: data.mail, pin: data.pin, link: data.link })
       .select()
       .single()
 
     if (error) throw new Error(error.message)
+
+    await admin
+      .from('user_activity')
+      .upsert({ email: data.mail, last_song_added_at: new Date().toISOString() }, { onConflict: 'email' })
+
     return inserted as QueueRow
   })
 

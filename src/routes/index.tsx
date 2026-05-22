@@ -112,7 +112,7 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className="h-10 w-10 px-4 text-left font-medium text-gray-500">#</th>
-            <th className="h-10 px-4 text-left font-medium text-gray-500">Name</th>
+            <th className="h-10 w-36 px-4 text-left font-medium text-gray-500">Name</th>
             <th className="h-10 px-4 text-left font-medium text-gray-500">Karaoke</th>
             <th className="h-10 px-4 text-right font-medium text-gray-500">Status</th>
           </tr>
@@ -136,9 +136,9 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
                       className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
                     >
                       <Clapperboard className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                      <span className="text-xs">{trunc(titles[entry.link] || entry.link, 38)}</span>
+                      <span className="text-xs">{trunc(titles[entry.link] || entry.link, 64)}</span>
                     </a>
-                    {(titles[entry.link] || entry.link).length > 38 && (
+                    {(titles[entry.link] || entry.link).length > 64 && (
                       <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100">
                         {titles[entry.link] || entry.link}
                       </span>
@@ -360,6 +360,54 @@ function TurnstileWidget({ siteKey, onToken }: { siteKey: string; onToken: (toke
   return <div ref={containerRef} />
 }
 
+const COOLDOWN_MS = 25 * 60 * 1000
+const COOLDOWN_KEY = 'automic_last_added'
+
+function formatTime(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
+
+function useCooldown() {
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function startCountdown(fromTs: number) {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    const initial = Math.ceil((COOLDOWN_MS - (Date.now() - fromTs)) / 1000)
+    if (initial <= 0) return
+    setRemainingSeconds(initial)
+    intervalRef.current = setInterval(() => {
+      const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - fromTs)) / 1000)
+      if (remaining <= 0) {
+        clearInterval(intervalRef.current!)
+        intervalRef.current = null
+        setRemainingSeconds(0)
+        localStorage.removeItem(COOLDOWN_KEY)
+      } else {
+        setRemainingSeconds(remaining)
+      }
+    }, 1000)
+  }
+
+  useEffect(() => {
+    const stored = localStorage.getItem(COOLDOWN_KEY)
+    if (stored) {
+      const ts = Number(stored)
+      if (Date.now() - ts < COOLDOWN_MS) startCountdown(ts)
+      else localStorage.removeItem(COOLDOWN_KEY)
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [])
+
+  function startCooldown() {
+    const ts = Date.now()
+    localStorage.setItem(COOLDOWN_KEY, String(ts))
+    startCountdown(ts)
+  }
+
+  return { cooldownActive: remainingSeconds > 0, remainingSeconds, startCooldown }
+}
+
 function useIsMounted() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -384,6 +432,7 @@ function Home() {
     )
   }
   const mounted = useIsMounted()
+  const { cooldownActive, remainingSeconds, startCooldown } = useCooldown()
   const [form, setForm] = useState<FormState>({ name: '', email: '', pin: '', youtubeLink: '' })
   const [errors, setErrors] = useState<FieldError>({})
   const [submitting, setSubmitting] = useState(false)
@@ -457,8 +506,11 @@ function Home() {
       setForm({ name: '', email: '', pin: '', youtubeLink: '' })
       setTurnstileToken(null)
       setTurnstileKey(k => k + 1)
+      startCooldown()
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      setSubmitError(msg)
+      if (msg.startsWith('Cooldown active')) startCooldown()
       setTurnstileToken(null)
       setTurnstileKey(k => k + 1)
     } finally {
@@ -599,11 +651,11 @@ function Home() {
 
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || cooldownActive}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 active:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {submitting ? 'Adding…' : 'Add to Queue'}
+                    {submitting ? 'Adding…' : cooldownActive ? `Wait ${formatTime(remainingSeconds)}` : 'Add to Queue'}
                   </button>
                 </form>
               </div>
