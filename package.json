@@ -6,11 +6,11 @@
     "#/*": "./src/*"
   },
   "scripts": {
-  "dev": "vite dev --port 3000",
-  "build": "vite build && tsc --noEmit",
-  "preview": "vite preview",
-  "deploy": "npm run build && wrangler deploy",
-  "cf-typegen": "wrangler types"
+    "dev": "vite dev --port 3000",
+    "build": "vite build && tsc --noEmit",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
@@ -30,7 +30,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.37.3",
+    "@cloudflare/vite-plugin": "^1.38.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@testing-library/dom": "^10.4.1",
@@ -43,7 +43,7 @@
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5",
-    "wrangler": "^4.93.1"
+    "wrangler": "^4.94.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
