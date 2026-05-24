@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { Music2, Clapperboard, AtSign, User, Hash, Loader2 } from 'lucide-react'
 import { Navbar } from '../components/Navbar'
-import { supabase, type QueueRow } from '../lib/supabase'
+import { getSupabase, type QueueRow } from '../lib/supabase'
 import { addToQueue, updateQueueLink, getTurnstileSiteKey, getAppState } from '../lib/queue.functions'
 import { getYoutubeTitle } from '../lib/youtube.util'
 import { AddToQueueSchema, ChangeSongSchema } from '../lib/schemas'
@@ -446,7 +446,7 @@ function Home() {
   const [titles, setTitles] = useState<Record<string, string>>({})
 
   async function fetchQueue() {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('queue')
       .select('*')
       .order('created_at', { ascending: true })

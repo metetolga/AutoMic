@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-ro
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
 import { Mic2, Loader2, Trash2, Music2, Clapperboard, LogOut, ArrowLeft, LockOpen, AtSign, Power, PowerOff } from 'lucide-react'
-import { supabase, type QueueRow } from '../../lib/supabase'
+import { getSupabase, type QueueRow } from '../../lib/supabase'
 import { getAuthClient } from '../../lib/supabase.auth'
 import { getYoutubeTitle } from '../../lib/youtube.util'
 import { unlockAccess, getAppState, setSessionActive } from '../../lib/queue.functions'
@@ -68,7 +68,7 @@ function AdminDashboard() {
   }
 
   useEffect(() => {
-    supabase
+    getSupabase()
       .from('queue')
       .select('*')
       .order('created_at', { ascending: true })
@@ -97,7 +97,7 @@ function AdminDashboard() {
 
   async function handleDelete(id: number) {
     setDeleting(id)
-    const { error } = await supabase.from('queue').delete().eq('id', id)
+    const { error } = await getSupabase().from('queue').delete().eq('id', id)
     if (!error) setQueue(prev => prev.filter(e => e.id !== id))
     setDeleting(null)
   }

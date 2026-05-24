@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createClient } from '@supabase/supabase-js'
-import { supabase, type QueueRow } from './supabase'
+import { type QueueRow } from './supabase'
 
 export const getTurnstileSiteKey = createServerFn({ method: 'GET' })
   .handler(() => ({ turnstileSiteKey: process.env.TURNSTILE_SITE_KEY ?? '' }))
@@ -126,7 +126,9 @@ export const updateQueueLink = createServerFn({ method: 'POST' })
     const verify = await verifyRes.json() as { success: boolean }
     if (!verify.success) throw new Error('Security check failed. Please try again.')
 
-    const { data: entry, error: findError } = await supabase
+    const anon = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_KEY!)
+
+    const { data: entry, error: findError } = await anon
       .from('queue')
       .select('id, pin, failed_pin_attempts')
       .eq('mail', data.mail)
@@ -139,7 +141,7 @@ export const updateQueueLink = createServerFn({ method: 'POST' })
 
     if (entry.pin !== data.pin) {
       const newCount = entry.failed_pin_attempts + 1
-      await supabase.from('queue').update({ failed_pin_attempts: newCount }).eq('id', entry.id)
+      await anon.from('queue').update({ failed_pin_attempts: newCount }).eq('id', entry.id)
       const remaining = 3 - newCount
       throw new Error(
         remaining === 0
@@ -148,7 +150,7 @@ export const updateQueueLink = createServerFn({ method: 'POST' })
       )
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await anon
       .from('queue')
       .update({ link: data.newLink })
       .eq('id', entry.id)
@@ -162,7 +164,8 @@ export const updateQueueLink = createServerFn({ method: 'POST' })
 export const unlockAccess = createServerFn({ method: 'POST' })
   .inputValidator((data: { mail: string }) => data)
   .handler(async ({ data }) => {
-    const { error } = await supabase
+    const anon = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_KEY!)
+    const { error } = await anon
       .from('queue')
       .update({ failed_pin_attempts: 0 })
       .eq('mail', data.mail)
