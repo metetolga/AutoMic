@@ -11,6 +11,6 @@ export type QueueRow = {
 }
 
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_KEY as string,
+  process.env.VITE_SUPABASE_URL as string,
+  process.env.VITE_SUPABASE_KEY as string,
 )
