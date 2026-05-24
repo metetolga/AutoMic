@@ -5,6 +5,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
+  "vars": {
+    "VITE_SUPABASE_URL": "https://dqvnbohsrftfbwbuvvog.supabase.co",
+    "VITE_SUPABASE_KEY": "sb_publishable_q_CCBwuOC1NoMbUkkyhjcw_HakrLceS",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAADTAJRMfpQZi38DX"
+  }
 }
