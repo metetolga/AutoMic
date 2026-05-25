@@ -38,6 +38,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async={true} />
       </head>
       <body suppressHydrationWarning>
         {children}

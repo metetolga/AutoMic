@@ -326,33 +326,31 @@ function TurnstileWidget({ siteKey, onToken }: { siteKey: string; onToken: (toke
 
   useEffect(() => {
     let widgetId: string | undefined
+    let cancelled = false
+    let pollId: ReturnType<typeof setInterval> | undefined
 
     function render() {
-      if (!containerRef.current || !window.turnstile) return
+      if (cancelled || !containerRef.current || !window.turnstile) return
       widgetId = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
-        callback: (t) => onTokenRef.current(t),
+        callback: (t: string) => onTokenRef.current(t),
         'expired-callback': () => onTokenRef.current(null),
         'error-callback': () => onTokenRef.current(null),
       })
     }
 
-    if (typeof window !== 'undefined' && window.turnstile) {
+    if (window.turnstile) {
       render()
     } else {
-      const existing = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')
-      if (existing) {
-        existing.addEventListener('load', render, { once: true })
-      } else {
-        const script = document.createElement('script')
-        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-        script.async = true
-        script.addEventListener('load', render, { once: true })
-        document.head.appendChild(script)
-      }
+      // Script is loaded in <head>; poll briefly until it initialises
+      pollId = setInterval(() => {
+        if (window.turnstile) { clearInterval(pollId); render() }
+      }, 50)
     }
 
     return () => {
+      cancelled = true
+      if (pollId !== undefined) clearInterval(pollId)
       if (widgetId !== undefined && window.turnstile) window.turnstile.remove(widgetId)
     }
   }, [siteKey])
