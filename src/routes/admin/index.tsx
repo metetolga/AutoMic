@@ -44,6 +44,7 @@ const STATUS_CLS = {
 
 function AdminDashboard() {
   const navigate = useNavigate()
+  const [authChecked, setAuthChecked] = useState(false)
   const [queue, setQueue] = useState<QueueRow[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<number | null>(null)
@@ -68,6 +69,16 @@ function AdminDashboard() {
   }
 
   useEffect(() => {
+    const auth = getAuthClient()
+    if (!auth) { navigate({ to: '/admin/login' }); return }
+    auth.auth.getSession().then(({ data: { session } }: { data: { session: unknown } }) => {
+      if (!session) navigate({ to: '/admin/login' })
+      else setAuthChecked(true)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!authChecked) return
     getSupabase()
       .from('queue')
       .select('*')
@@ -77,7 +88,7 @@ function AdminDashboard() {
         setLoading(false)
       })
     getAppState().then(({ isActive }) => setIsActive(isActive))
-  }, [])
+  }, [authChecked])
 
   useEffect(() => {
     const missing = queue.map(e => e.link).filter(l => !(l in titles))
@@ -150,6 +161,8 @@ function AdminDashboard() {
     if (auth) await auth.auth.signOut()
     navigate({ to: '/admin/login' })
   }
+
+  if (!authChecked) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
