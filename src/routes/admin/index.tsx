@@ -170,7 +170,7 @@ function AdminDashboard() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-white/95 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6 dark:text-gray-100">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex cursor-pointer items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Mic2 className="h-4 w-4 text-white" />
             </div>
@@ -178,7 +178,7 @@ function AdminDashboard() {
             <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
               admin
             </span>
-          </div>
+          </Link>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setDark(!dark)}
@@ -192,14 +192,14 @@ function AdminDashboard() {
               className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
               <ArrowLeft className="h-4 w-4" />
-              Add Songs
+              <span className="hidden sm:inline">Add Songs</span>
             </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
