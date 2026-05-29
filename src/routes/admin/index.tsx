@@ -229,7 +229,7 @@ function AdminDashboard() {
                   'flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                   isActive
                     ? 'border border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
-                    : 'bg-gray-900 text-white hover:bg-gray-700',
+                    : 'bg-primary text-white hover:bg-[#8500D8]',
                 )}
               >
                 {sessionWorking
@@ -270,7 +270,7 @@ function AdminDashboard() {
               <button
                 type="submit"
                 disabled={unlocking || !unlockEmail.trim()}
-                className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#8500D8] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockOpen className="h-4 w-4" />}
                 Unlock

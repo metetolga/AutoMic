@@ -309,7 +309,7 @@ function ChangeForm({ onUpdated, className, siteKey }: { onUpdated: (row: QueueR
         <button
           type="submit"
           disabled={submitting}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 active:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#8500D8] active:bg-[#7500BD] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitting ? 'Updating…' : 'Update Song'}
@@ -539,7 +539,7 @@ function Home() {
             Live queue · Open mic night
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-            Queue Your Song
+            Händelbar - Karaoke Night
           </h1>
           <p className="mt-3 text-base text-gray-500">
             Submit your song request and get ready to take the stage.
@@ -650,7 +650,7 @@ function Home() {
                   <button
                     type="submit"
                     disabled={submitting || cooldownActive}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 active:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#8500D8] active:bg-[#7500BD] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     {submitting ? 'Adding…' : cooldownActive ? `Wait ${formatTime(remainingSeconds)}` : 'Add to Queue'}
