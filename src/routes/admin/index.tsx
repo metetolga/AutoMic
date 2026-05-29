@@ -1,11 +1,12 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
-import { Mic2, Loader2, Trash2, Music2, Clapperboard, LogOut, ArrowLeft, LockOpen, AtSign, Power, PowerOff } from 'lucide-react'
+import { Mic2, Loader2, Trash2, Music2, Clapperboard, LogOut, ArrowLeft, LockOpen, AtSign, Power, PowerOff, Moon, Sun } from 'lucide-react'
 import { getSupabase, type QueueRow } from '../../lib/supabase'
 import { getAuthClient } from '../../lib/supabase.auth'
 import { getYoutubeTitle } from '../../lib/youtube.util'
 import { unlockAccess, getAppState, setSessionActive } from '../../lib/queue.functions'
+import { useDarkMode } from '../../lib/useDarkMode'
 
 export const Route = createFileRoute('/admin/')({
   beforeLoad: async () => {
@@ -36,14 +37,15 @@ const STATUS_LABEL = {
 } as const
 
 const STATUS_CLS = {
-  'played':      'bg-rose-50 text-rose-400 border border-rose-200',
-  'now-playing': 'bg-green-50 text-green-700 border border-green-200',
-  'up-next':     'bg-amber-50 text-amber-700 border border-amber-200',
-  'waiting':     'bg-gray-100 text-gray-600 border border-gray-200',
+  'played':      'bg-rose-50 text-rose-500 border border-rose-200 dark:bg-transparent dark:text-rose-400 dark:border-rose-700',
+  'now-playing': 'bg-green-50 text-green-700 border border-green-200 dark:bg-transparent dark:text-green-400 dark:border-green-700',
+  'up-next':     'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-transparent dark:text-amber-400 dark:border-amber-600',
+  'waiting':     'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-transparent dark:text-gray-400 dark:border-gray-600',
 } as const
 
 function AdminDashboard() {
   const navigate = useNavigate()
+  const [dark, setDark] = useDarkMode()
   const [authChecked, setAuthChecked] = useState(false)
   const [queue, setQueue] = useState<QueueRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -165,29 +167,36 @@ function AdminDashboard() {
   if (!authChecked) return null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-white/95 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6 dark:text-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Mic2 className="h-4 w-4 text-white" />
             </div>
             <span className="text-[15px] font-semibold tracking-tight">AutoMic</span>
-            <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
               admin
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setDark(!dark)}
+              className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+              aria-label="Toggle dark mode"
+            >
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <Link
               to="/"
-              className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900"
+              className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Add Songs
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900"
+              className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
               <LogOut className="h-4 w-4" />
               Sign out
@@ -202,11 +211,11 @@ function AdminDashboard() {
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
 
           {/* Session Management */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-700">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Session</h2>
-                <p className="mt-0.5 text-sm text-gray-500">Control karaoke night availability.</p>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">Session</h2>
+                <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Control karaoke night availability.</p>
               </div>
               {isActive === null ? (
                 <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -214,8 +223,8 @@ function AdminDashboard() {
                 <span className={clsx(
                   'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
                   isActive
-                    ? 'border-green-200 bg-green-50 text-green-700'
-                    : 'border-gray-200 bg-gray-100 text-gray-500',
+                    ? 'border-green-200 bg-green-50 text-green-700 dark:bg-transparent dark:border-green-700 dark:text-green-400'
+                    : 'border-gray-200 bg-gray-100 text-gray-500 dark:bg-transparent dark:border-gray-600 dark:text-gray-400',
                 )}>
                   {isActive ? 'Active' : 'Inactive'}
                 </span>
@@ -228,7 +237,7 @@ function AdminDashboard() {
                 className={clsx(
                   'flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
                   isActive
-                    ? 'border border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+                    ? 'border border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-600 dark:text-gray-200 dark:hover:border-red-800 dark:hover:bg-red-900/30 dark:hover:text-red-400'
                     : 'bg-primary text-white hover:bg-[#8500D8]',
                 )}
               >
@@ -248,10 +257,10 @@ function AdminDashboard() {
           </div>
 
           {/* Unlock Access */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-5 py-4">
-              <h2 className="text-base font-semibold text-gray-900">Unlock Access</h2>
-              <p className="mt-0.5 text-sm text-gray-500">Reset the failed-attempt counter for a locked entry.</p>
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Unlock Access</h2>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Reset the failed-attempt counter for a locked entry.</p>
             </div>
             <form onSubmit={handleUnlock} noValidate className="flex items-start gap-3 p-5">
               <div className="relative flex-1">
@@ -288,16 +297,16 @@ function AdminDashboard() {
 
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Queue</h1>
-            <p className="mt-0.5 text-sm text-gray-500">Remove entries to advance the queue.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Queue</h1>
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Remove entries to advance the queue.</p>
             {lastLink && (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                 Last clicked link:{' '}
                 <a
                   href={lastLink.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-600 underline hover:text-gray-900"
+                  className="text-gray-600 underline hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
                   {trunc(lastLink.title, 60)}
                 </a>
@@ -305,31 +314,31 @@ function AdminDashboard() {
             )}
           </div>
           {!loading && (
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
               {queue.length} {queue.length === 1 ? 'song' : 'songs'}
             </span>
           )}
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-16 shadow-sm">
+          <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-16 shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
           </div>
         ) : queue.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white py-16 text-center shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white py-16 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <Music2 className="mx-auto mb-2 h-8 w-8 text-gray-300" />
             <p className="text-sm text-gray-400">Queue is empty.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="h-10 w-10 px-4 text-left font-medium text-gray-500">#</th>
-                  <th className="h-10 w-48 px-4 text-left font-medium text-gray-500">Name</th>
-                  <th className="h-10 w-48 px-4 text-left font-medium text-gray-500">Email</th>
-                  <th className="h-10 w-88 px-4 text-left font-medium text-gray-500">Karaoke</th>
-                  <th className="h-10 px-4 text-left font-medium text-gray-500">Status</th>
+                <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                  <th className="h-10 w-10 px-4 text-left font-medium text-gray-500 dark:text-gray-400">#</th>
+                  <th className="h-10 w-48 px-4 text-left font-medium text-gray-500 dark:text-gray-400">Name</th>
+                  <th className="h-10 w-48 px-4 text-left font-medium text-gray-500 dark:text-gray-400">Email</th>
+                  <th className="h-10 w-88 px-4 text-left font-medium text-gray-500 dark:text-gray-400">Karaoke</th>
+                  <th className="h-10 px-4 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
                   <th className="h-10 px-4" />
                 </tr>
               </thead>
@@ -340,22 +349,22 @@ function AdminDashboard() {
                     <tr
                       key={entry.id}
                       className={clsx(
-                        'border-b border-gray-100 transition-colors last:border-0',
-                        status === 'played' ? 'bg-rose-50/40 hover:bg-rose-50/70' : 'hover:bg-gray-50',
+                        'border-b border-gray-100 transition-colors last:border-0 dark:border-gray-700',
+                        status === 'played' ? 'bg-rose-50/40 hover:bg-rose-50/70 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800',
                       )}
                     >
                       <td className="px-4 py-3 tabular-nums text-gray-400">{i + 1}</td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{trunc(entry.name, 18)}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{trunc(entry.name, 18)}</td>
                       <td className="px-4 py-3">
                         <div className="group relative inline-block">
                           <button
                             onClick={() => handleCopyEmail(entry.mail, entry.id)}
-                            className="text-xs text-gray-500 transition-colors hover:text-gray-900"
+                            className="text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                           >
                             {trunc(entry.mail, 22)}
                           </button>
                           {entry.mail.length > 22 && (
-                            <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100">
+                            <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600">
                               {copied === entry.id ? 'Copied!' : entry.mail}
                             </span>
                           )}
@@ -366,13 +375,13 @@ function AdminDashboard() {
                           <a
                             href={entry.link}
                             onClick={(e) => { e.preventDefault(); handlePlayLink(entry) }}
-                            className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900"
+                            className="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                           >
                             <Clapperboard className="h-3.5 w-3.5 shrink-0 text-red-500" />
                             <span className="text-xs">{trunc(titles[entry.link] || entry.link, 44)}</span>
                           </a>
                           {(titles[entry.link] || entry.link).length > 44 && (
-                            <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100">
+                            <span className="pointer-events-none absolute left-0 top-0 z-50 whitespace-nowrap rounded-md bg-white pl-0 pr-2.5 py-1 text-xs text-gray-600 opacity-0 shadow-sm ring-1 ring-gray-200 transition-opacity group-hover:opacity-100 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600">
                               {titles[entry.link] || entry.link}
                             </span>
                           )}

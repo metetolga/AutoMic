@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Mic2, Mail, Lock, Loader2, ArrowLeft } from 'lucide-react'
+import { Mic2, Mail, Lock, Loader2, ArrowLeft, Moon, Sun } from 'lucide-react'
 import { getAuthClient } from '../../lib/supabase.auth'
+import { useDarkMode } from '../../lib/useDarkMode'
 
 export const Route = createFileRoute('/admin/login')({ component: AdminLogin })
 
 function AdminLogin() {
   const navigate = useNavigate()
+  const [dark, setDark] = useDarkMode()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -33,27 +35,37 @@ function AdminLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 dark:bg-gray-950">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <Mic2 className="h-5 w-5 text-white" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">Staff sign in</h1>
-          <p className="mt-1 text-sm text-gray-500">händlebar admin access</p>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Staff sign in</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">händlebar admin access</p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-900">
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <Link
-              to="/"
-              className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Add Songs
-            </Link>
+            <div className="flex items-center justify-between">
+              <Link
+                to="/"
+                className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Add Songs
+              </Link>
+              <button
+                type="button"
+                onClick={() => setDark(!dark)}
+                className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                aria-label="Toggle dark mode"
+              >
+                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            </div>
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email
               </label>
               <div className="relative">
@@ -72,7 +84,7 @@ function AdminLogin() {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
               <div className="relative">

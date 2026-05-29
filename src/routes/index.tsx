@@ -57,16 +57,16 @@ const STATUS_LABEL = {
 } as const
 
 const STATUS_CLS = {
-  'now-playing': 'bg-green-50 text-green-700 border border-green-200',
-  'up-next':     'bg-amber-50 text-amber-700 border border-amber-200',
-  'waiting':     'bg-gray-100 text-gray-600 border border-gray-200',
+  'now-playing': 'bg-green-50 text-green-700 border border-green-200 dark:bg-transparent dark:text-green-400 dark:border-green-700',
+  'up-next':     'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-transparent dark:text-amber-400 dark:border-amber-600',
+  'waiting':     'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-transparent dark:text-gray-400 dark:border-gray-600',
 } as const
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-gray-700">
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
       {children}
     </label>
   )
@@ -91,7 +91,7 @@ function ErrorMsg({ message }: { message?: string }) {
 function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading: boolean; titles: Record<string, string> }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-12 shadow-sm">
+      <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-12 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
       </div>
     )
@@ -99,7 +99,7 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white py-12 text-center shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white py-12 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <Music2 className="mx-auto mb-2 h-8 w-8 text-gray-300" />
         <p className="text-sm text-gray-400">No songs in the queue yet.</p>
       </div>
@@ -107,10 +107,10 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
+          <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
             <th className="h-10 w-10 px-4 text-left font-medium text-gray-500">#</th>
             <th className="h-10 w-36 px-4 text-left font-medium text-gray-500">Name</th>
             <th className="h-10 px-4 text-left font-medium text-gray-500">Karaoke</th>
@@ -123,10 +123,10 @@ function QueueTable({ entries, loading, titles }: { entries: QueueRow[]; loading
             return (
               <tr
                 key={entry.id}
-                className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50"
+                className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
               >
                 <td className="px-4 py-3 tabular-nums text-gray-400">{i + 1}</td>
-                <td className="px-4 py-3 font-medium text-gray-900">{trunc(entry.name, 18)}</td>
+                <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{trunc(entry.name, 18)}</td>
                 <td className="max-w-xs px-4 py-3">
                   <div className="group relative">
                     <a
@@ -223,9 +223,9 @@ function ChangeForm({ onUpdated, className, siteKey }: { onUpdated: (row: QueueR
   }
 
   return (
-    <div className={clsx('rounded-xl border border-gray-200 bg-white p-8 shadow-sm', className)}>
-      <h2 className="mb-1 text-lg font-semibold text-gray-900">Change Your Song</h2>
-      <p className="mb-6 text-sm text-gray-500">Already in the queue? Swap your karaoke track.</p>
+    <div className={clsx('rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-900', className)}>
+      <h2 className="mb-1 text-lg font-semibold text-gray-900 dark:text-gray-100">Change Your Song</h2>
+      <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">Already in the queue? Swap your karaoke track.</p>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <div>
@@ -419,12 +419,12 @@ function Home() {
 
   if (!isActive) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <Navbar />
         <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-6 text-center">
           <p className="mb-4 text-5xl">🎤</p>
-          <h2 className="mb-2 text-2xl font-bold text-gray-900">Karaoke Night is currently closed!</h2>
-          <p className="max-w-sm text-gray-500">We'll see you at the next bar night. Check our Instagram for dates.</p>
+          <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-50">Karaoke Night is currently closed!</h2>
+          <p className="max-w-sm text-gray-500 dark:text-gray-400">We'll see you at the next bar night. Check our Instagram for dates.</p>
         </div>
       </div>
     )
@@ -528,17 +528,17 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
         {/* Hero */}
         <div className="mb-10 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 shadow-sm">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
             <Music2 className="h-3.5 w-3.5" />
             Live queue · Open mic night
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl dark:text-gray-50">
             Händelbar - Karaoke Night
           </h1>
           <p className="mt-3 text-base text-gray-500">
@@ -550,14 +550,14 @@ function Home() {
         <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start">
           {!mounted ? (
             <>
-              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-115" />
-              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-100" />
+              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-115 dark:border-gray-700 dark:bg-gray-900" />
+              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm h-100 dark:border-gray-700 dark:bg-gray-900" />
             </>
           ) : (
             <>
-              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-                <h2 className="mb-1 text-lg font-semibold text-gray-900">Song Request</h2>
-                <p className="mb-6 text-sm text-gray-500">Fill in your details and paste your karaoke track.</p>
+              <div className="flex-1 rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                <h2 className="mb-1 text-lg font-semibold text-gray-900 dark:text-gray-100">Song Request</h2>
+                <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">Fill in your details and paste your karaoke track.</p>
 
                 <form onSubmit={handleSubmit} noValidate className="space-y-5">
                   <div>
@@ -666,9 +666,9 @@ function Home() {
         {/* Queue table */}
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Current Queue</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Current Queue</h2>
             {!queueLoading && (
-              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-transparent dark:border dark:border-gray-600 dark:text-gray-400">
                 {queue.length} {queue.length === 1 ? 'song' : 'songs'}
               </span>
             )}

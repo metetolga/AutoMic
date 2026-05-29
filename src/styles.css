@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
@@ -54,4 +55,19 @@ body {
   .input-base::placeholder {
     color: var(--color-muted-fg);
   }
+}
+
+.dark .input-base {
+  background: oklch(0.22 0.01 265);
+  border-color: oklch(0.32 0.01 265);
+  color: oklch(0.92 0 0);
+}
+
+.dark .input-base:focus {
+  border-color: oklch(0.55 0 0);
+  box-shadow: 0 0 0 3px oklch(0.55 0 0 / 0.15);
+}
+
+.dark .input-base::placeholder {
+  color: oklch(0.5 0 0);
 }
